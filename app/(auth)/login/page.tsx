@@ -1,3 +1,4 @@
+//app/(auth)/login/page.tsx
 "use client"
 
 import type React from "react"
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+
 export default function LoginPage() {
   const { login, isLoading, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
@@ -23,12 +25,11 @@ export default function LoginPage() {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    login(formData.email, formData.password)
-  }
-
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  console.log("Login attempt:", formData);
+  login(formData.email, formData.password);
+};
   return (
     <div className="flex h-screen">
       {/* Left side - Illustration */}

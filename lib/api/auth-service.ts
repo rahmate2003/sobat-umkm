@@ -51,9 +51,9 @@ interface LoginRequest {
 interface RefreshTokenResponseData {
   tokens: {
     access: Token
+    refresh: Token // Tambahkan refresh token di response
   }
 }
-// lib/api/auth-service.ts (partial)
 export const login = async (
   credentials: LoginRequest
 ): Promise<{ user: User; access_token: string; refresh_token: string }> => {
@@ -66,39 +66,24 @@ export const login = async (
     if (response.data.success) {
       const { user, tokens } = response.data.data;
 
-      // Ekstrak token
       const access_token = tokens.access.token;
       const refresh_token = tokens.refresh.token;
 
-      // Hitung waktu kedaluwarsa dalam hari
-      const accessExpires = new Date(tokens.access.expires);
-      const refreshExpires = new Date(tokens.refresh.expires);
-      const now = new Date();
-
-      // Konversi ke hari (pembulatan ke bawah)
-      const accessExpiresInDays = Math.floor(
-        (accessExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      const refreshExpiresInDays = Math.floor(
-        (refreshExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
       // Simpan token ke cookies dengan waktu kedaluwarsa yang sesuai
       Cookies.set("access_token", access_token, {
-        expires: accessExpiresInDays > 0 ? accessExpiresInDays : 1,
+        expires: 30 / (60 * 24), // 30 menit dalam fraksi hari
       });
       Cookies.set("refresh_token", refresh_token, {
-        expires: refreshExpiresInDays > 0 ? refreshExpiresInDays : 7,
+        expires: 30, // 30 hari
       });
 
-      // Konversi user dari response ke format User yang digunakan aplikasi
       const mappedUser: User = {
         id: user.id,
         email: user.email,
-        name: user.email.split("@")[0], // Gunakan bagian depan email sebagai nama sementara
+        name: user.email.split("@")[0],
         role: user.role.roleName,
-        phoneNumber: "", // Default kosong karena tidak ada dalam response
-        imageUrl: null, // Default null karena tidak ada dalam response
+        phoneNumber: "",
+        imageUrl: null,
       };
 
       return {
@@ -111,12 +96,9 @@ export const login = async (
     }
   } catch (error: any) {
     console.error("Login error:", error);
-    // Ensure the error has a message property
-    const errorMessage =
-      error?.response?.data?.message || "Login failed";
-    throw new Error(errorMessage);
+    throw new Error(error?.response?.data?.message || "Login failed");
   }
-};
+}
 
 // Fungsi untuk logout
 export const logout = async (): Promise<void> => {
@@ -138,43 +120,44 @@ export const logout = async (): Promise<void> => {
     throw error.response?.data || error
   }
 }
-
-// Fungsi untuk refresh token
+// Fungsi refreshToken yang diperbarui
 export const refreshToken = async (): Promise<string> => {
-  const refresh = Cookies.get("refresh_token")
+  const refresh = Cookies.get("refresh_token");
 
   if (!refresh) {
-    throw new Error("No refresh token available")
+    throw new Error("No refresh token available");
   }
 
   try {
-    const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>("/auth/refresh", {
-      refreshToken: refresh,
-    })
+    const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>(
+      "/auth/refresh-token",
+      { refreshToken: refresh } // Request body sesuai contoh Anda
+    );
 
     if (response.data.success) {
-      const newAccessToken = response.data.data.tokens.access.token
-      const accessExpires = new Date(response.data.data.tokens.access.expires)
-      const now = new Date()
+      const newAccessToken = response.data.data.tokens.access.token;
+      const newRefreshToken = response.data.data.tokens.refresh.token;
 
-      // Konversi ke hari (pembulatan ke bawah)
-      const accessExpiresInDays = Math.floor((accessExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-      // Update token di cookies
+      // Simpan access token dan refresh token baru ke cookies
       Cookies.set("access_token", newAccessToken, {
-        expires: accessExpiresInDays > 0 ? accessExpiresInDays : 1,
-      })
+        expires: 30 / (60 * 24), // 30 menit
+      });
+      Cookies.set("refresh_token", newRefreshToken, {
+        expires: 30, // 30 hari
+      });
 
-      return newAccessToken
+      return newAccessToken;
     } else {
-      throw new Error(response.data.message || "Token refresh failed")
+      throw new Error(response.data.message || "Token refresh failed");
     }
   } catch (error: any) {
-    console.error("Refresh token error:", error)
-    throw error.response?.data || error
+    console.error("Refresh token error:", error);
+    // Hapus token jika refresh gagal
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
+    throw error.response?.data || error;
   }
 }
-
 // Fungsi untuk mendapatkan user yang sedang login
 export const getCurrentUser = async (): Promise<User> => {
   try {

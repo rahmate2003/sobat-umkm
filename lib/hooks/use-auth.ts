@@ -1,12 +1,12 @@
-//lib/hooks/use-auth.ts
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useEffect } from "react"
 import { useMutation, useQuery, useQueryClient } from "react-query"
 import { useRouter } from "next/navigation"
 import { login as loginApi, logout as logoutApi, getCurrentUser } from "@/lib/api/auth-service"
 import { useAuthStore } from "@/lib/store/auth-store"
 import type { User } from "@/lib/api/user-service"
+import Cookies from "js-cookie"
 
 export function useAuth() {
   const router = useRouter()
@@ -22,80 +22,78 @@ export function useAuth() {
     logout: logoutStore,
   } = useAuthStore()
 
-  // Query untuk mendapatkan user saat ini
-  const { data: user, refetch: refetchUser } = useQuery<User>("currentUser", getCurrentUser, {
-    enabled: isAuthenticated,
-    onSuccess: (data) => {
-      setUser(data)
-    },
-    onError: () => {
-      setUser(null)
-      setAuthenticated(false)
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  })
-const loginMutation = useMutation(loginApi, {
-  onMutate: () => {
-    setLoading(true);
-    setError(null);
-  },
-  onSuccess: async (data) => {
-    setUser(data.user);
-    setAuthenticated(true);
-
-    // Invalidate user profile query to ensure fresh data
-    queryClient.invalidateQueries("userProfile");
-
-    router.push("/dashboard");
-  },
-  onError: (error: any) => {
-    setError(error?.message || "Login gagal. Silakan coba lagi.");
-    setAuthenticated(false);
-  },
-  onSettled: () => {
-    setLoading(false);
-  },
-});
-
-  // Mutation untuk logout
-  const logoutMutation = useMutation(logoutApi, {
-    onMutate: () => {
-      setLoading(true)
-    },
-    onSuccess: () => {
-      logoutStore()
-      // Invalidate queries
-      queryClient.invalidateQueries("userProfile")
-      queryClient.invalidateQueries("currentUser")
-
-      router.push("/login")
-    },
-    onError: () => {
-      // Bahkan jika API logout gagal, kita tetap logout di client
-      logoutStore()
-      // Invalidate queries
-      queryClient.invalidateQueries("userProfile")
-      queryClient.invalidateQueries("currentUser")
-
-      router.push("/login")
-    },
-    onSettled: () => {
-      setLoading(false)
-    },
-  })
-
-  // Fungsi untuk login
-  const login = useCallback(
-    (email: string, password: string) => {
-      loginMutation.mutate({ email, password })
-    },
-    [loginMutation],
+  const { data: user, refetch: refetchUser } = useQuery<User>(
+    "currentUser",
+    getCurrentUser,
+    {
+      enabled: isAuthenticated && !!Cookies.get("access_token"),
+      onSuccess: (data) => setUser(data),
+      onError: () => {
+        setUser(null);
+        setAuthenticated(false);
+        logoutStore();
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          router.replace("/login");
+        }
+      },
+      staleTime: 5 * 60 * 1000,
+    }
   )
 
-  // Fungsi untuk logout
-  const logout = useCallback(() => {
-    logoutMutation.mutate()
-  }, [logoutMutation])
+  // Pengecekan token saat komponen mount atau isAuthenticated berubah
+  useEffect(() => {
+    const accessToken = Cookies.get("access_token");
+    const refreshToken = Cookies.get("refresh_token");
+
+    if (isAuthenticated && (!accessToken || !refreshToken)) {
+      logoutStore();
+      router.replace("/login");
+    }
+  }, [isAuthenticated, logoutStore, router]);
+
+  const loginMutation = useMutation(loginApi, {
+    onMutate: () => {
+      setLoading(true);
+      setError(null);
+    },
+    onSuccess: async (data) => {
+      setUser(data.user);
+      setAuthenticated(true);
+      queryClient.invalidateQueries("userProfile");
+      router.replace("/dashboard");
+    },
+    onError: (error: any) => {
+      setError(error?.message || "Login gagal. Silakan coba lagi.");
+      setAuthenticated(false);
+    },
+    onSettled: () => {
+      setLoading(false);
+    },
+  });
+
+  const logoutMutation = useMutation(logoutApi, {
+    onMutate: () => setLoading(true),
+    onSuccess: () => {
+      logoutStore();
+      queryClient.invalidateQueries("userProfile");
+      queryClient.invalidateQueries("currentUser");
+      router.replace("/login");
+    },
+    onError: () => {
+      logoutStore();
+      queryClient.invalidateQueries("userProfile");
+      queryClient.invalidateQueries("currentUser");
+      router.replace("/login");
+    },
+    onSettled: () => setLoading(false),
+  });
+
+  const login = useCallback(
+    (email: string, password: string) => loginMutation.mutate({ email, password }),
+    [loginMutation]
+  );
+
+  const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
 
   return {
     user,
@@ -105,6 +103,5 @@ const loginMutation = useMutation(loginApi, {
     login,
     logout,
     refetchUser,
-  }
+  };
 }
-

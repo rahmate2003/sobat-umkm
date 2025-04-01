@@ -17,25 +17,25 @@ export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar()
   const [isMobile, setIsMobile] = useState(false)
 
-  // Check if we're on mobile
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-      if (window.innerWidth < 768) {
-        // Auto collapse on mobile
-        toggleSidebar()
+      const newIsMobile = window.innerWidth < 768;
+      setIsMobile(newIsMobile);
+      // Hanya panggil toggleSidebar jika belum collapsed dan sedang dalam mode mobile
+      if (newIsMobile && !isCollapsed) {
+        toggleSidebar();
       }
-    }
+    };
 
-    // Initial check
-    checkIfMobile()
+    // Panggil sekali saat mount
+    checkIfMobile();
 
-    // Add event listener
-    window.addEventListener("resize", checkIfMobile)
+    // Tambahkan event listener
+    window.addEventListener("resize", checkIfMobile);
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfMobile)
-  }, [toggleSidebar])
+    return () => window.removeEventListener("resize", checkIfMobile);
+  }, [isCollapsed]); // Hanya bergantung pada isCollapsed, bukan toggleSidebar
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -55,17 +55,15 @@ export function Sidebar() {
       <div className={cn("p-4 flex items-center", isCollapsed ? "justify-center" : "justify-between")}>
         {isCollapsed ? (
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="text-white hover:bg-white/10">
-            <Menu size={20} />
+            <Menu size={24} />
           </Button>
         ) : (
           <>
             <div className="flex items-center space-x-1">
-              <Image src="/logo.png" alt="NukaPOS Logo" width={160} height={160} />
-              {/* <span className="text-xl font-bold text-white">NukaPOS</span> */}
+              <Image src="/logo.png" alt="NukaPOS Logo" width={180} height={180} />
             </div>
-
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="text-white hover:bg-white/10">
-              <ChevronLeft size={20} />
+              <ChevronLeft size={24} />
             </Button>
           </>
         )}
@@ -139,4 +137,3 @@ export function Sidebar() {
     </div>
   )
 }
-

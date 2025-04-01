@@ -39,58 +39,33 @@ axiosInstance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
-
-// Interceptor untuk response
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    return response;
-  },
+  (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Skip token refresh for /auth/login endpoint
-    if (originalRequest.url?.includes("/auth/login")) {
+    if (originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/refresh-token")) {
       return Promise.reject(error);
     }
 
-    // Jika error 401 (Unauthorized) dan belum pernah retry
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Coba refresh token
         const newToken = await refreshToken();
-
-        // Update token di cookies
-        Cookies.set("access_token", newToken, {
-          expires: Number.parseInt(process.env.NEXT_PUBLIC_ACCESS_TOKEN_EXPIRES || "1"),
-        });
-
-        // Pastikan headers ada, jika tidak, inisialisasi
-        if (!originalRequest.headers) {
-          originalRequest.headers = {} as any;
-        }
-
-        // Update header dengan token baru
+        Cookies.set("access_token", newToken, { expires: 30 / (60 * 24) }); // 30 menit
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
-        // Retry request dengan token baru
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Jika refresh token gagal, logout user
         Cookies.remove("access_token");
         Cookies.remove("refresh_token");
-
-        // Redirect ke halaman login
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
+        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+          window.location.href = "/login"; // Redirect ke login jika refresh gagal
         }
-
         return Promise.reject(refreshError);
       }
     }
 
-    // Handle error lainnya
     return Promise.reject(error);
   }
 );
