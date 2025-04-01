@@ -1,9 +1,11 @@
-import axios, { type AxiosError, type AxiosResponse } from "axios"
-import Cookies from "js-cookie"
-import { refreshToken } from "./auth-service"
+// lib/api/axios.ts
+import axios, { type AxiosError, type AxiosResponse } from "axios";
+import Cookies from "js-cookie";
+import { refreshToken } from "./auth-service";
+import { InternalAxiosRequestConfig } from "axios";
 
 // Base URL dari API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.sobatumkm.com"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.sobatumkm.com";
 
 // Membuat instance axios
 const axiosInstance = axios.create({
@@ -13,70 +15,84 @@ const axiosInstance = axios.create({
     Accept: "application/json",
   },
   timeout: 30000, // 30 detik timeout
-})
+});
 
 // Interceptor untuk request
 axiosInstance.interceptors.request.use(
-  (config: any) => {
+  (config: InternalAxiosRequestConfig) => {
     // Mendapatkan token dari cookies
-    const token = Cookies.get("access_token")
+    const token = Cookies.get("access_token");
 
-    // Jika token ada, tambahkan ke header
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Pastikan headers ada, jika tidak, inisialisasi
+    if (!config.headers) {
+      config.headers = {} as any;
     }
 
-    return config
+    // Jika token ada, tambahkan ke header
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
   },
   (error: AxiosError) => {
-    return Promise.reject(error)
-  },
-)
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor untuk response
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    return response
+    return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as any
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // Skip token refresh for /auth/login endpoint
+    if (originalRequest.url?.includes("/auth/login")) {
+      return Promise.reject(error);
+    }
 
     // Jika error 401 (Unauthorized) dan belum pernah retry
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
+      originalRequest._retry = true;
 
       try {
         // Coba refresh token
-        const newToken = await refreshToken()
+        const newToken = await refreshToken();
 
         // Update token di cookies
         Cookies.set("access_token", newToken, {
           expires: Number.parseInt(process.env.NEXT_PUBLIC_ACCESS_TOKEN_EXPIRES || "1"),
-        })
+        });
 
-        // Update header dengan token baru
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
+        // Pastikan headers ada, jika tidak, inisialisasi
+        if (!originalRequest.headers) {
+          originalRequest.headers = {} as any;
         }
 
+        // Update header dengan token baru
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
         // Retry request dengan token baru
-        return axiosInstance(originalRequest)
+        return axiosInstance(originalRequest);
       } catch (refreshError) {
         // Jika refresh token gagal, logout user
-        Cookies.remove("access_token")
-        Cookies.remove("refresh_token")
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
 
         // Redirect ke halaman login
-        window.location.href = "/login"
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
 
-        return Promise.reject(refreshError)
+        return Promise.reject(refreshError);
       }
     }
 
     // Handle error lainnya
-    return Promise.reject(error)
-  },
-)
+    return Promise.reject(error);
+  }
+);
 
-export default axiosInstance
-
+export default axiosInstance;

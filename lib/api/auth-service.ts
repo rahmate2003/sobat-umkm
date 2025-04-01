@@ -1,3 +1,4 @@
+//lib/api/auth.service.ts
 import axiosInstance from "./axios"
 import Cookies from "js-cookie"
 import type { User } from "./user-service"
@@ -52,37 +53,43 @@ interface RefreshTokenResponseData {
     access: Token
   }
 }
-
-// Fungsi untuk login
+// lib/api/auth-service.ts (partial)
 export const login = async (
-  credentials: LoginRequest,
+  credentials: LoginRequest
 ): Promise<{ user: User; access_token: string; refresh_token: string }> => {
   try {
-    const response = await axiosInstance.post<ApiResponse<LoginResponseData>>("/auth/login", credentials)
+    const response = await axiosInstance.post<ApiResponse<LoginResponseData>>(
+      "/auth/login",
+      credentials
+    );
 
     if (response.data.success) {
-      const { user, tokens } = response.data.data
+      const { user, tokens } = response.data.data;
 
       // Ekstrak token
-      const access_token = tokens.access.token
-      const refresh_token = tokens.refresh.token
+      const access_token = tokens.access.token;
+      const refresh_token = tokens.refresh.token;
 
       // Hitung waktu kedaluwarsa dalam hari
-      const accessExpires = new Date(tokens.access.expires)
-      const refreshExpires = new Date(tokens.refresh.expires)
-      const now = new Date()
+      const accessExpires = new Date(tokens.access.expires);
+      const refreshExpires = new Date(tokens.refresh.expires);
+      const now = new Date();
 
       // Konversi ke hari (pembulatan ke bawah)
-      const accessExpiresInDays = Math.floor((accessExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      const refreshExpiresInDays = Math.floor((refreshExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const accessExpiresInDays = Math.floor(
+        (accessExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const refreshExpiresInDays = Math.floor(
+        (refreshExpires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       // Simpan token ke cookies dengan waktu kedaluwarsa yang sesuai
       Cookies.set("access_token", access_token, {
         expires: accessExpiresInDays > 0 ? accessExpiresInDays : 1,
-      })
+      });
       Cookies.set("refresh_token", refresh_token, {
         expires: refreshExpiresInDays > 0 ? refreshExpiresInDays : 7,
-      })
+      });
 
       // Konversi user dari response ke format User yang digunakan aplikasi
       const mappedUser: User = {
@@ -92,21 +99,24 @@ export const login = async (
         role: user.role.roleName,
         phoneNumber: "", // Default kosong karena tidak ada dalam response
         imageUrl: null, // Default null karena tidak ada dalam response
-      }
+      };
 
       return {
         user: mappedUser,
         access_token,
         refresh_token,
-      }
+      };
     } else {
-      throw new Error(response.data.message || "Login failed")
+      throw new Error(response.data.message || "Login failed");
     }
   } catch (error: any) {
-    console.error("Login error:", error)
-    throw error.response?.data || error
+    console.error("Login error:", error);
+    // Ensure the error has a message property
+    const errorMessage =
+      error?.response?.data?.message || "Login failed";
+    throw new Error(errorMessage);
   }
-}
+};
 
 // Fungsi untuk logout
 export const logout = async (): Promise<void> => {

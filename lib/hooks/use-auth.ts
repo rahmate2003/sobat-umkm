@@ -1,3 +1,4 @@
+//lib/hooks/use-auth.ts
 "use client"
 
 import { useCallback } from "react"
@@ -33,30 +34,28 @@ export function useAuth() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
+const loginMutation = useMutation(loginApi, {
+  onMutate: () => {
+    setLoading(true);
+    setError(null);
+  },
+  onSuccess: async (data) => {
+    setUser(data.user);
+    setAuthenticated(true);
 
-  // Mutation untuk login
-  const loginMutation = useMutation(loginApi, {
-    onMutate: () => {
-      setLoading(true)
-      setError(null)
-    },
-    onSuccess: async (data) => {
-      setUser(data.user)
-      setAuthenticated(true)
+    // Invalidate user profile query to ensure fresh data
+    queryClient.invalidateQueries("userProfile");
 
-      // Invalidate user profile query to ensure fresh data
-      queryClient.invalidateQueries("userProfile")
-
-      router.push("/dashboard")
-    },
-    onError: (error: any) => {
-      setError(error?.message || "Login gagal. Silakan coba lagi.")
-      setAuthenticated(false)
-    },
-    onSettled: () => {
-      setLoading(false)
-    },
-  })
+    router.push("/dashboard");
+  },
+  onError: (error: any) => {
+    setError(error?.message || "Login gagal. Silakan coba lagi.");
+    setAuthenticated(false);
+  },
+  onSettled: () => {
+    setLoading(false);
+  },
+});
 
   // Mutation untuk logout
   const logoutMutation = useMutation(logoutApi, {
