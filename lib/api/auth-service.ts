@@ -138,7 +138,7 @@ export const refreshToken = async (): Promise<string> => {
   }
 
   try {
-    const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>("/auth/refresh-token", {
+    const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>("/auth/refresh", {
       refreshToken: refresh,
     })
 

@@ -3,7 +3,7 @@ import Cookies from "js-cookie"
 import { refreshToken } from "./auth-service"
 
 // Base URL dari API
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.sobatumkm.com/api/v1"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.sobatumkm.com"
 
 // Membuat instance axios
 const axiosInstance = axios.create({

@@ -106,15 +106,11 @@ export const uploadProfilePhoto = async (file: File): Promise<User> => {
     const formData = new FormData()
     formData.append("image", file)
 
-    const response = await axiosInstance.post<ApiResponse<UserProfileResponseData>>(
-      "/user/upload-photo",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+    const response = await axiosInstance.post<ApiResponse<UserProfileResponseData>>("/user/upload-photo", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
       },
-    )
+    })
 
     if (response.data.success) {
       const apiUser = response.data.data.user

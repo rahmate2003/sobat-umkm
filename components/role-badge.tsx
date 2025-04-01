@@ -11,7 +11,7 @@ export function RoleBadge({ role, className }: RoleBadgeProps) {
     OWNER: "bg-blue-100 text-blue-800",
     ADMIN_TOKO: "bg-purple-100 text-purple-800",
     KASIR_TOKO: "bg-green-100 text-green-800",
-    SUPER_ADMIN: "bg-red-100 text-red-800",
+    SUPERADMIN: "bg-red-100 text-red-800",
     // Default color for unknown roles
     DEFAULT: "bg-gray-100 text-gray-800",
   }
