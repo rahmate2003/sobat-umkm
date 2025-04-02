@@ -20,7 +20,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      isAuthenticated: !!Cookies.get("access_token"),
+      isAuthenticated: typeof window !== "undefined" ? !!Cookies.get("access_token") : false,
       isLoading: false,
       error: null,
       setUser: (user) => set({ user }),
@@ -34,8 +34,11 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: "auth-storage",
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+         name: "auth-storage",
+      partialize: (state) => ({ 
+        user: state.user, 
+        isAuthenticated: state.isAuthenticated 
+      }),
     },
   ),
 )

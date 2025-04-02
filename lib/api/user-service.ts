@@ -1,16 +1,11 @@
-//lib/api/user.service.ts
+// lib/api/user.service.ts
 import axiosInstance from "./axios"
-
-// Interface untuk role dalam response API
-interface Role {
-  roleName: string
-}
 
 // Interface untuk user dalam response API
 interface ApiUser {
   id: number
   email: string
-  role: Role
+  role: string // Role adalah string langsung, bukan objek
   name?: string
   phoneNumber?: string
   imageUrl?: string | null
@@ -52,7 +47,7 @@ export const getUserProfile = async (): Promise<User> => {
         id: apiUser.id,
         email: apiUser.email,
         name: apiUser.name || apiUser.email.split("@")[0], // Gunakan bagian depan email jika name tidak ada
-        role: apiUser.role.roleName,
+        role: apiUser.role, // Langsung gunakan string
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
       }
@@ -73,7 +68,7 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
     // Konversi dari format aplikasi ke format API
     const apiUserData: Partial<ApiUser> = {
       ...userData,
-      role: userData.role ? { roleName: userData.role } : undefined,
+      // Tidak perlu konversi ke objek { roleName: string }, gunakan string langsung
     }
 
     const response = await axiosInstance.put<ApiResponse<UserProfileResponseData>>("/user/", apiUserData)
@@ -86,7 +81,7 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
         id: apiUser.id,
         email: apiUser.email,
         name: apiUser.name || apiUser.email.split("@")[0],
-        role: apiUser.role.roleName,
+        role: apiUser.role, // Langsung gunakan string
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
       }
@@ -121,7 +116,7 @@ export const uploadProfilePhoto = async (file: File): Promise<User> => {
         id: apiUser.id,
         email: apiUser.email,
         name: apiUser.name || apiUser.email.split("@")[0],
-        role: apiUser.role.roleName,
+        role: apiUser.role, // Langsung gunakan string
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
       }
@@ -135,4 +130,3 @@ export const uploadProfilePhoto = async (file: File): Promise<User> => {
     throw error.response?.data || error
   }
 }
-

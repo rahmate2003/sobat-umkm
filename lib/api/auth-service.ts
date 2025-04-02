@@ -1,59 +1,49 @@
-//lib/api/auth.service.ts
-import axiosInstance from "./axios"
-import Cookies from "js-cookie"
-import type { User } from "./user-service"
+// lib/api/auth.service.ts
+import axiosInstance from "./axios";
+import Cookies from "js-cookie";
+import type { User } from "./user-service";
 
-// Interface untuk response API
 interface ApiResponse<T> {
-  success: boolean
-  statusCode: number
-  message: string
-  data: T
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: T;
 }
 
-// Interface untuk role
-interface Role {
-  roleName: string
-}
 
-// Interface untuk user dalam response login
 interface LoginUser {
-  id: number
-  email: string
-  role: Role
+  id: number;
+  email: string;
+  role: string;
 }
 
-// Interface untuk token
 interface Token {
-  token: string
-  expires: string
+  token: string;
+  expires: string; // ISO 8601 format
 }
 
-// Interface untuk tokens dalam response login
 interface Tokens {
-  access: Token
-  refresh: Token
+  access: Token;
+  refresh: Token;
 }
 
-// Interface untuk response login data
 interface LoginResponseData {
-  user: LoginUser
-  tokens: Tokens
+  user: LoginUser;
+  token: Tokens;
 }
 
-// Interface untuk request login
 interface LoginRequest {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
-// Interface untuk response refresh token
 interface RefreshTokenResponseData {
-  tokens: {
-    access: Token
-    refresh: Token // Tambahkan refresh token di response
-  }
+  token: {
+    access: Token;
+    refresh: Token;
+  };
 }
+// lib/api/auth.service.ts (login function)
 export const login = async (
   credentials: LoginRequest
 ): Promise<{ user: User; access_token: string; refresh_token: string }> => {
@@ -64,125 +54,114 @@ export const login = async (
     );
 
     if (response.data.success) {
-      const { user, tokens } = response.data.data;
+      const { user, token } = response.data.data;
+      const { access, refresh } = token;
 
-      const access_token = tokens.access.token;
-      const refresh_token = tokens.refresh.token;
+      // Set access token to expire in 30 days, keep refresh token as per server response
+      const accessExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const refreshExpires = new Date(refresh.expires);
 
-      // Simpan token ke cookies dengan waktu kedaluwarsa yang sesuai
-      Cookies.set("access_token", access_token, {
-        expires: 30 / (60 * 24), // 30 menit dalam fraksi hari
+      Cookies.set("access_token", access.token, {
+        expires: accessExpires,
       });
-      Cookies.set("refresh_token", refresh_token, {
-        expires: 30, // 30 hari
+      Cookies.set("refresh_token", refresh.token, {
+        expires: refreshExpires,
       });
 
       const mappedUser: User = {
         id: user.id,
         email: user.email,
         name: user.email.split("@")[0],
-        role: user.role.roleName,
+        role: user.role,
         phoneNumber: "",
         imageUrl: null,
       };
 
       return {
         user: mappedUser,
-        access_token,
-        refresh_token,
+        access_token: access.token,
+        refresh_token: refresh.token,
       };
     } else {
       throw new Error(response.data.message || "Login failed");
     }
   } catch (error: any) {
     console.error("Login error:", error);
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
     throw new Error(error?.response?.data?.message || "Login failed");
   }
-}
+};
 
-// Fungsi untuk logout
 export const logout = async (): Promise<void> => {
   try {
-    const response = await axiosInstance.post<ApiResponse<null>>("/auth/logout")
-
-    if (response.data.success) {
-      // Hapus token dari cookies
-      Cookies.remove("access_token")
-      Cookies.remove("refresh_token")
-    } else {
-      throw new Error(response.data.message || "Logout failed")
-    }
-  } catch (error: any) {
-    console.error("Logout error:", error)
-    // Hapus token dari cookies meskipun API gagal
-    Cookies.remove("access_token")
-    Cookies.remove("refresh_token")
-    throw error.response?.data || error
+    await axiosInstance.post<ApiResponse<null>>("/auth/logout");
+  } catch (error) {
+    console.error("Logout error:", error);
+  } finally {
+    // Always remove tokens
+    Cookies.remove("access_token");
+    Cookies.remove("refresh_token");
   }
-}
-// Fungsi refreshToken yang diperbarui
+};
+
+// lib/api/auth.service.ts (refreshToken function)
 export const refreshToken = async (): Promise<string> => {
-  const refresh = Cookies.get("refresh_token");
-
-  if (!refresh) {
-    throw new Error("No refresh token available");
-  }
+  const refreshTokenValue = Cookies.get("refresh_token");
+  if (!refreshTokenValue) throw new Error("No refresh token available");
 
   try {
     const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>(
       "/auth/refresh-token",
-      { refreshToken: refresh } // Request body sesuai contoh Anda
+      { refreshToken: refreshTokenValue }
     );
 
     if (response.data.success) {
-      const newAccessToken = response.data.data.tokens.access.token;
-      const newRefreshToken = response.data.data.tokens.refresh.token;
+      const { access, refresh } = response.data.data.token;
 
-      // Simpan access token dan refresh token baru ke cookies
-      Cookies.set("access_token", newAccessToken, {
-        expires: 30 / (60 * 24), // 30 menit
-      });
-      Cookies.set("refresh_token", newRefreshToken, {
-        expires: 30, // 30 hari
-      });
+      // Set access token to expire in 30 days, keep refresh token as per server response
+      const accessExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const refreshExpires = new Date(refresh.expires);
 
-      return newAccessToken;
-    } else {
-      throw new Error(response.data.message || "Token refresh failed");
+      Cookies.set("access_token", access.token, { expires: accessExpires });
+      Cookies.set("refresh_token", refresh.token, { expires: refreshExpires });
+
+      return access.token;
     }
+    throw new Error(response.data.message || "Token refresh failed");
   } catch (error: any) {
-    console.error("Refresh token error:", error);
-    // Hapus token jika refresh gagal
+    console.error("Step 6 - Refresh Token Error:", error.response?.data || error);
     Cookies.remove("access_token");
     Cookies.remove("refresh_token");
     throw error.response?.data || error;
   }
-}
-// Fungsi untuk mendapatkan user yang sedang login
+};
+
 export const getCurrentUser = async (): Promise<User> => {
+  const accessToken = Cookies.get("access_token");
+  if (!accessToken) throw new Error("No access token available");
+
   try {
-    const response = await axiosInstance.get<ApiResponse<{ user: LoginUser }>>("/user/")
+    const response = await axiosInstance.get<ApiResponse<{ user: LoginUser }>>("/user/");
 
     if (response.data.success) {
-      const user = response.data.data.user
-
-      // Konversi user dari response ke format User yang digunakan aplikasi
-      const mappedUser: User = {
+      const user = response.data.data.user;
+      return {
         id: user.id,
         email: user.email,
-        name: user.email.split("@")[0], // Gunakan bagian depan email sebagai nama sementara
-        role: user.role.roleName,
-        phoneNumber: "", // Default kosong karena tidak ada dalam response
-        imageUrl: null, // Default null karena tidak ada dalam response
-      }
-
-      return mappedUser
-    } else {
-      throw new Error(response.data.message || "Failed to get current user")
+        name: user.email.split("@")[0],
+        role: user.role,
+        phoneNumber: "",
+        imageUrl: null,
+      };
     }
+    throw new Error(response.data.message || "Failed to get current user");
   } catch (error: any) {
-    console.error("Get current user error:", error)
-    throw error.response?.data || error
+    console.error("Get current user error:", error);
+    if (error.response?.status === 401) {
+      Cookies.remove("access_token");
+      Cookies.remove("refresh_token");
+    }
+    throw error.response?.data || error;
   }
-}
-
+};

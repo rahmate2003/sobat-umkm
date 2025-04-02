@@ -21,36 +21,52 @@ export function useAuth() {
     setError,
     logout: logoutStore,
   } = useAuthStore()
-
-  const { data: user, refetch: refetchUser } = useQuery<User>(
+ const { data: user, refetch: refetchUser } = useQuery<User>(
     "currentUser",
     getCurrentUser,
     {
-      enabled: isAuthenticated && !!Cookies.get("access_token"),
-      onSuccess: (data) => setUser(data),
-      onError: () => {
+      enabled: isAuthenticated,
+      onSuccess: (data) => {
+        setUser(data);
+        setAuthenticated(true);
+      },
+      onError: (error) => {
+        console.error("Failed to fetch current user:", error);
+        // Hapus token dan reset state
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
         setUser(null);
         setAuthenticated(false);
         logoutStore();
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        
+        // Redirect ke login hanya jika tidak sedang di halaman login
+        if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
           router.replace("/login");
         }
       },
+      retry: 1,
       staleTime: 5 * 60 * 1000,
     }
-  )
+  );
 
-  // Pengecekan token saat komponen mount atau isAuthenticated berubah
+  // Effect untuk cek token saat mount
   useEffect(() => {
-    const accessToken = Cookies.get("access_token");
-    const refreshToken = Cookies.get("refresh_token");
+    const checkAuth = () => {
+      const accessToken = Cookies.get("access_token");
+      const refreshToken = Cookies.get("refresh_token");
+      
+      if (!accessToken || !refreshToken) {
+        logoutStore();
+        if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+          router.replace("/login");
+        }
+      } else {
+        setAuthenticated(true);
+      }
+    };
 
-    if (isAuthenticated && (!accessToken || !refreshToken)) {
-      logoutStore();
-      router.replace("/login");
-    }
-  }, [isAuthenticated, logoutStore, router]);
-
+    checkAuth();
+  }, [logoutStore, router]);
   const loginMutation = useMutation(loginApi, {
     onMutate: () => {
       setLoading(true);

@@ -1,3 +1,4 @@
+//app/(dashboard)/dashboard/page.tsx
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"

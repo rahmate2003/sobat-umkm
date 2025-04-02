@@ -37,12 +37,40 @@ const storesData = [
     location: "Jln. Projakal Rt 55 No.118...",
     status: "Aktif",
   },
+  {
+    id: 5,
+    name: "Toko A",
+    owner: "@OwnerNande",
+    location: "Jln. Projakal Rt 155 No.118...",
+    status: "Aktif",
+  },
+  {
+    id: 6,
+    name: "Toko A",
+    owner: "@OwnerNande",
+    location: "Jln. Projakal Rt 255 No.118...",
+    status: "Tidak Aktif",
+  },
+  {
+    id: 7,
+    name: "Toko A",
+    owner: "@OwnerAuliaa",
+    location: "Jln. Projakal Rt 355 No.118...",
+    status: "Aktif",
+  },
+  {
+    id: 8,
+    name: "Toko A",
+    owner: "@OwnerAuliaa",
+    location: "Jln. Projakal Rt 455 No.118...",
+    status: "Aktif",
+  }
 ]
 
 export default function ManajemenTokoPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 4
+  const itemsPerPage = 6
 
   // Filter stores based on search term
   const filteredStores = storesData.filter(
