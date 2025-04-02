@@ -1,49 +1,57 @@
-//middleware.ts
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Mendapatkan token dari cookies
-  const token = request.cookies.get("access_token")?.value
+  const token = request.cookies.get("access_token")?.value;
+  const pathname = request.nextUrl.pathname;
 
-  // Mendapatkan path saat ini
-  const path = request.nextUrl.pathname
+  // Daftar path yang memerlukan autentikasi (protected paths)
+  const protectedPaths = [
+    "/dashboard",
+    "/manajemen-toko",
+    "/owner",
+    "/aktivitas",
+    "/pengaturan",
+  ];
 
-  // Daftar path yang memerlukan autentikasi
-  const protectedPaths = ["/dashboard", "/manajemen-toko", "/owner", "/aktivitas", "/pengaturan"]
+  // Daftar path untuk guest (hanya bisa diakses jika belum login)
+  const guestPaths = ["/login", "/register", "/forgot-password"];
 
-  // Daftar path untuk guest (belum login)
-  const guestPaths = ["/login", "/register", "/forgot-password"]
+  // Cek apakah path saat ini adalah protected path
+  const isProtectedPath = protectedPaths.some((path) =>
+    pathname.startsWith(path)
+  );
 
-  // Cek apakah path saat ini memerlukan autentikasi
-  const isProtectedPath = protectedPaths.some(
-    (protectedPath) => path === protectedPath || path.startsWith(`${protectedPath}/`),
-  )
+  // Cek apakah path saat ini adalah guest path
+  const isGuestPath = guestPaths.some((path) => pathname.startsWith(path));
 
-  // Cek apakah path saat ini untuk guest
-  const isGuestPath = guestPaths.some((guestPath) => path === guestPath || path.startsWith(`${guestPath}/`))
-
-  // Jika path memerlukan autentikasi dan tidak ada token
+  // Jika pengguna belum login dan mencoba akses protected path
   if (isProtectedPath && !token) {
-    // Redirect ke halaman login
-    return NextResponse.redirect(new URL("/login", request.url))
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Jika path untuk guest dan ada token
+  // Jika pengguna sudah login dan mencoba akses guest path
   if (isGuestPath && token) {
-    // Redirect ke dashboard
-    return NextResponse.redirect(new URL("/dashboard", request.url))
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Lanjutkan request
-  return NextResponse.next()
+  // Lanjutkan request jika tidak ada aturan yang dilanggar
+  return NextResponse.next();
 }
 
-// Konfigurasi middleware
 export const config = {
   matcher: [
-    // Paths yang akan diproses oleh middleware
+    // Terapkan middleware pada protected paths
+    "/dashboard/:path*",
+    "/manajemen-toko/:path*",
+    "/owner/:path*",
+    "/aktivitas/:path*",
+    "/pengaturan/:path*",
+    // Terapkan middleware pada guest paths
+    "/login",
+    "/register",
+    "/forgot-password",
+    // Kecualikan asset statis dan API
     "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
-}
-
+};

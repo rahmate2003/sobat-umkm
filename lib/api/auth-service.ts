@@ -1,4 +1,4 @@
-// lib/api/auth.service.ts
+//lib/api/auth-service.ts
 import axiosInstance from "./axios";
 import Cookies from "js-cookie";
 import type { User } from "./user-service";
@@ -10,7 +10,6 @@ interface ApiResponse<T> {
   data: T;
 }
 
-
 interface LoginUser {
   id: number;
   email: string;
@@ -19,7 +18,7 @@ interface LoginUser {
 
 interface Token {
   token: string;
-  expires: string; // ISO 8601 format
+  expires: string;
 }
 
 interface Tokens {
@@ -43,7 +42,7 @@ interface RefreshTokenResponseData {
     refresh: Token;
   };
 }
-// lib/api/auth.service.ts (login function)
+
 export const login = async (
   credentials: LoginRequest
 ): Promise<{ user: User; access_token: string; refresh_token: string }> => {
@@ -57,15 +56,31 @@ export const login = async (
       const { user, token } = response.data.data;
       const { access, refresh } = token;
 
-      // Set access token to expire in 30 days, keep refresh token as per server response
-      const accessExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-      const refreshExpires = new Date(refresh.expires);
+      // Add console logs here to see the tokens
+      console.log("Access Token:", access.token);
+      console.log("Access Token Expires:", new Date(access.expires).toLocaleString());
+      console.log("Refresh Token:", refresh.token);
+      console.log("Refresh Token Expires:", new Date(refresh.expires).toLocaleString());
 
+//  const accessExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+//       const refreshExpires = new Date(refresh.expires);
+
+//       Cookies.set("access_token", access.token, {
+//         expires: accessExpires,
+//       });
+      // Set cookies with proper expiration from server
       Cookies.set("access_token", access.token, {
-        expires: accessExpires,
+        expires: new Date(access.expires),
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
       });
+
       Cookies.set("refresh_token", refresh.token, {
-        expires: refreshExpires,
+        expires: new Date(refresh.expires),
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
       });
 
       const mappedUser: User = {
@@ -82,64 +97,78 @@ export const login = async (
         access_token: access.token,
         refresh_token: refresh.token,
       };
-    } else {
-      throw new Error(response.data.message || "Login failed");
     }
+    throw new Error(response.data.message || "Login failed");
   } catch (error: any) {
     console.error("Login error:", error);
-    Cookies.remove("access_token");
-    Cookies.remove("refresh_token");
+    clearAuthCookies();
     throw new Error(error?.response?.data?.message || "Login failed");
   }
 };
 
 export const logout = async (): Promise<void> => {
   try {
-    await axiosInstance.post<ApiResponse<null>>("/auth/logout");
+    await axiosInstance.post("/auth/logout");
   } catch (error) {
     console.error("Logout error:", error);
   } finally {
-    // Always remove tokens
-    Cookies.remove("access_token");
-    Cookies.remove("refresh_token");
+    clearAuthCookies();
   }
 };
 
-// lib/api/auth.service.ts (refreshToken function)
 export const refreshToken = async (): Promise<string> => {
   const refreshTokenValue = Cookies.get("refresh_token");
-  if (!refreshTokenValue) throw new Error("No refresh token available");
+  if (!refreshTokenValue) {
+    throw new Error("NO_REFRESH_TOKEN");
+  }
 
   try {
     const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>(
       "/auth/refresh-token",
-      { refreshToken: refreshTokenValue }
+      { refreshToken: refreshTokenValue },
+      {
+        headers: {
+          "X-No-Retry": "true",
+        },
+      }
     );
 
     if (response.data.success) {
       const { access, refresh } = response.data.data.token;
+      const now = new Date();
 
-      // Set access token to expire in 30 days, keep refresh token as per server response
-      const accessExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-      const refreshExpires = new Date(refresh.expires);
+      if (new Date(refresh.expires) < now) {
+        throw new Error("REFRESH_TOKEN_EXPIRED");
+      }
 
-      Cookies.set("access_token", access.token, { expires: accessExpires });
-      Cookies.set("refresh_token", refresh.token, { expires: refreshExpires });
+      const cookieOptions = {
+        expires: new Date(access.expires),
+        path: "/",
+        sameSite: "lax" as const,
+        secure: process.env.NODE_ENV === "production",
+      };
+
+      Cookies.set("access_token", access.token, cookieOptions);
+      Cookies.set("refresh_token", refresh.token, {
+        ...cookieOptions,
+        expires: new Date(refresh.expires),
+      });
 
       return access.token;
     }
     throw new Error(response.data.message || "Token refresh failed");
   } catch (error: any) {
-    console.error("Step 6 - Refresh Token Error:", error.response?.data || error);
-    Cookies.remove("access_token");
-    Cookies.remove("refresh_token");
-    throw error.response?.data || error;
+    console.error("Refresh token error:", error);
+    clearAuthCookies();
+    throw error;
   }
 };
 
 export const getCurrentUser = async (): Promise<User> => {
   const accessToken = Cookies.get("access_token");
-  if (!accessToken) throw new Error("No access token available");
+  if (!accessToken) {
+    throw new Error("NO_ACCESS_TOKEN");
+  }
 
   try {
     const response = await axiosInstance.get<ApiResponse<{ user: LoginUser }>>("/user/");
@@ -159,9 +188,13 @@ export const getCurrentUser = async (): Promise<User> => {
   } catch (error: any) {
     console.error("Get current user error:", error);
     if (error.response?.status === 401) {
-      Cookies.remove("access_token");
-      Cookies.remove("refresh_token");
+      clearAuthCookies();
     }
-    throw error.response?.data || error;
+    throw error;
   }
+};
+
+const clearAuthCookies = () => {
+  Cookies.remove("access_token", { path: "/" });
+  Cookies.remove("refresh_token", { path: "/" });
 };

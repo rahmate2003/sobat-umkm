@@ -1,3 +1,4 @@
+//lib/hooks/use-auth.ts
 "use client"
 
 import { useCallback, useEffect } from "react"

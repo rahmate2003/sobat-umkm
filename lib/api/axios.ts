@@ -1,4 +1,4 @@
-// lib/api/axios.ts
+//lib/api/axios.ts
 import axios, { type AxiosError, type AxiosResponse } from "axios";
 import Cookies from "js-cookie";
 import { refreshToken } from "./auth-service";
@@ -11,12 +11,10 @@ const axiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
-    "X-Client-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone, // Add client timezone
   },
   timeout: 30000,
 });
 
-// Request interceptor
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = Cookies.get("access_token");
@@ -31,7 +29,6 @@ axiosInstance.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-// lib/api/axios.ts (response interceptor)
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -48,24 +45,17 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = originalRequest._retry || false;
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
 
-      if (!originalRequest._retry && originalRequest._retryCount <= 3) {
+      if (!originalRequest._retry && originalRequest._retryCount <= 1) {
         originalRequest._retry = true;
 
         try {
           const newToken = await refreshToken();
-          // Set access token to expire in 30 days
-          const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
-          Cookies.set("access_token", newToken, { expires });
-          
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return axiosInstance(originalRequest);
         } catch (refreshError) {
-          console.error("Step 11 - Refresh Failed:", refreshError);
-          Cookies.remove("access_token");
-          Cookies.remove("refresh_token");
-          
+          console.error("Refresh token failed:", refreshError);
           if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-            window.location.href = "/login";
+            window.location.href = "/login?reason=session_expired";
           }
           return Promise.reject(refreshError);
         }
@@ -75,4 +65,5 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 export default axiosInstance;
