@@ -1,9 +1,8 @@
-//app/(auth)/login/page.tsx
 "use client"
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
@@ -12,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/hooks/use-auth"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-
 export default function LoginPage() {
   const { login, isLoading, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
@@ -20,29 +18,35 @@ export default function LoginPage() {
     email: "",
     password: "",
   })
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Check for session_expired parameter in URL
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    if (searchParams.get("reason") === "session_expired") {
+      setSessionExpired(true)
+    }
+
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  console.log("Login attempt:", formData);
-  login(formData.email, formData.password);
-};
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    // console.log("Login attempt:", formData)
+    login(formData.email, formData.password)
+  }
+
   return (
     <div className="flex h-screen">
       {/* Left side - Illustration */}
       <div className="hidden md:flex md:w-1/2 bg-white p-8 flex-col justify-center items-center">
         <div className="max-w-md">
           <div className="mb-8">
-            <Image
-              src="/sidebar-logo.png"
-              alt="Login Illustration"
-              width={1000}
-              height={1000}
-              className="mx-auto"
-            />
+            <Image src="/sidebar-logo.png" alt="Login Illustration" width={1000} height={1000} className="mx-auto" />
           </div>
           <h2 className="text-2xl font-bold">
             Welcome <span className="text-primary">Admin NukaPos</span>,
@@ -61,6 +65,12 @@ const handleSubmit = (e: React.FormEvent) => {
 
           <h2 className="text-2xl font-bold text-center mb-2">Masuk</h2>
           <p className="text-center text-primary mb-6">Masukkan Email dan Kata sandi !!</p>
+
+          {sessionExpired && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>Sesi Anda telah berakhir. Silakan login kembali.</AlertDescription>
+            </Alert>
+          )}
 
           {error && (
             <Alert variant="destructive" className="mb-4">

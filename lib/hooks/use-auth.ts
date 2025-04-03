@@ -1,4 +1,5 @@
 //lib/hooks/use-auth.ts
+
 "use client"
 
 import { useCallback, useEffect } from "react"
@@ -22,95 +23,100 @@ export function useAuth() {
     setError,
     logout: logoutStore,
   } = useAuthStore()
- const { data: user, refetch: refetchUser } = useQuery<User>(
-    "currentUser",
-    getCurrentUser,
-    {
-      enabled: isAuthenticated,
-      onSuccess: (data) => {
-        setUser(data);
-        setAuthenticated(true);
-      },
-      onError: (error) => {
-        console.error("Failed to fetch current user:", error);
-        // Hapus token dan reset state
-        Cookies.remove("access_token");
-        Cookies.remove("refresh_token");
-        setUser(null);
-        setAuthenticated(false);
-        logoutStore();
-        
-        // Redirect ke login hanya jika tidak sedang di halaman login
-        if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-          router.replace("/login");
+  const { data: user, refetch: refetchUser } = useQuery<User>("currentUser", getCurrentUser, {
+    enabled: isAuthenticated,
+    onSuccess: (data) => {
+      setUser(data)
+      setAuthenticated(true)
+    },
+    onError: (error: any) => {
+      console.error("Failed to fetch current user:", error)
+
+      // Clear tokens and reset state
+      Cookies.remove("access_token", { path: "/" })
+      Cookies.remove("refresh_token", { path: "/" })
+      setUser(null)
+      setAuthenticated(false)
+      logoutStore()
+
+      // Check for specific error message for expired tokens
+      const isSessionExpired =
+        error.message === "REFRESH_TOKEN_EXPIRED" || error?.response?.data?.message === "Expired or Invalid Token"
+
+      // Redirect to login with appropriate message
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        if (isSessionExpired) {
+          router.replace("/login?reason=session_expired")
+        } else {
+          router.replace("/login")
         }
-      },
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-    }
-  );
+      }
+    },
+    retry: 1,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // Effect untuk cek token saat mount
   useEffect(() => {
     const checkAuth = () => {
-      const accessToken = Cookies.get("access_token");
-      const refreshToken = Cookies.get("refresh_token");
-      
+      const accessToken = Cookies.get("access_token")
+      const refreshToken = Cookies.get("refresh_token")
+
       if (!accessToken || !refreshToken) {
-        logoutStore();
+        logoutStore()
         if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-          router.replace("/login");
+          router.replace("/login")
         }
       } else {
-        setAuthenticated(true);
+        setAuthenticated(true)
       }
-    };
+    }
 
-    checkAuth();
-  }, [logoutStore, router]);
+    checkAuth()
+  }, [logoutStore, router])
   const loginMutation = useMutation(loginApi, {
     onMutate: () => {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
     },
     onSuccess: async (data) => {
-      setUser(data.user);
-      setAuthenticated(true);
-      queryClient.invalidateQueries("userProfile");
-      router.replace("/dashboard");
+      setUser(data.user)
+      setAuthenticated(true)
+      queryClient.invalidateQueries("userProfile")
+      router.replace("/dashboard")
     },
     onError: (error: any) => {
-      setError(error?.message || "Login gagal. Silakan coba lagi.");
-      setAuthenticated(false);
+      setError(error?.message || "Login gagal. Silakan coba lagi.")
+      setAuthenticated(false)
     },
     onSettled: () => {
-      setLoading(false);
+      setLoading(false)
     },
-  });
+  })
 
   const logoutMutation = useMutation(logoutApi, {
     onMutate: () => setLoading(true),
     onSuccess: () => {
-      logoutStore();
-      queryClient.invalidateQueries("userProfile");
-      queryClient.invalidateQueries("currentUser");
-      router.replace("/login");
+      logoutStore()
+      queryClient.invalidateQueries("userProfile")
+      queryClient.invalidateQueries("currentUser")
+      router.replace("/login")
     },
     onError: () => {
-      logoutStore();
-      queryClient.invalidateQueries("userProfile");
-      queryClient.invalidateQueries("currentUser");
-      router.replace("/login");
+      logoutStore()
+      queryClient.invalidateQueries("userProfile")
+      queryClient.invalidateQueries("currentUser")
+      router.replace("/login")
     },
     onSettled: () => setLoading(false),
-  });
+  })
 
   const login = useCallback(
     (email: string, password: string) => loginMutation.mutate({ email, password }),
-    [loginMutation]
-  );
+    [loginMutation],
+  )
 
-  const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
+  const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation])
 
   return {
     user,
@@ -120,5 +126,6 @@ export function useAuth() {
     login,
     logout,
     refetchUser,
-  };
+  }
 }
+

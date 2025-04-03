@@ -1,65 +1,91 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Cookies from "js-cookie";
-import { refreshToken } from "@/lib/api/auth-service";
-import { LoadingScreen } from "@/components/loading-screen";
+import type React from "react"
 
+import { useEffect, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import Cookies from "js-cookie"
+import { refreshToken } from "@/lib/api/auth-service"
+import { LoadingScreen } from "@/components/loading-screen"
 export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter()
+  const pathname = usePathname()
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const checkAndRefreshToken = async () => {
-      const accessToken = Cookies.get("access_token");
-      const refreshTokenValue = Cookies.get("refresh_token");
+      const accessToken = Cookies.get("access_token")
+      const refreshTokenValue = Cookies.get("refresh_token")
 
-      // Skip untuk guest paths (middleware sudah menangani redirect)
+      // Skip for guest paths
       if (
         pathname.startsWith("/login") ||
         pathname.startsWith("/register") ||
         pathname.startsWith("/forgot-password")
       ) {
-        setIsLoading(false);
-        return;
+        setIsLoading(false)
+        return
       }
 
-      // Jika tidak ada token sama sekali, redirect ke login
-      if (!accessToken && !refreshTokenValue) {
-        router.replace("/login");
-        return;
+      // No tokens at all - redirect to login
+      if (!refreshTokenValue) {
+        router.replace("/login")
+        return
       }
 
-      // Jika access token expired tapi refresh token ada
-      if (refreshTokenValue && (!accessToken || isTokenExpired(accessToken))) {
+      // If we have a refresh token but no access token or it's expired, try to refresh
+      if (!accessToken || isTokenExpired(accessToken)) {
         try {
-          await refreshToken();
-        } catch (error) {
-          console.error("Refresh failed:", error);
-          router.replace("/login?reason=session_expired");
-          return;
-        }
-      }
-      setIsLoading(false);
-    };
+          // console.log("Access token missing or expired, attempting refresh")
+          await refreshToken()
+          setIsLoading(false)
+        } catch (error: any) {
+          console.error("Refresh failed:", error)
 
-    checkAndRefreshToken();
-  }, [router, pathname]);
+          // Handle specific error cases
+          if (error.message === "REFRESH_TOKEN_EXPIRED") {
+            router.replace("/login?reason=session_expired")
+          } else if (error.message === "REFRESH_TOKEN_INVALID") {
+            router.replace("/login?reason=session_expired")
+          } else {
+            router.replace("/login?reason=session_expired")
+          }
+          return
+        }
+      } else {
+        setIsLoading(false)
+      }
+    }
+
+    checkAndRefreshToken()
+  }, [router, pathname])
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen />
   }
 
-  return <>{children}</>;
-};
+  return <>{children}</>
+}
 
-function isTokenExpired(token: string) {
+// Improved token expiration check with better error handling
+function isTokenExpired(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 < Date.now();
-  } catch {
-    return true;
+    const base64Url = token.split(".")[1]
+    if (!base64Url) return true
+
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
+    )
+
+    const payload = JSON.parse(jsonPayload)
+    return payload.exp * 1000 < Date.now()
+  } catch (error) {
+    console.error("Error parsing token:", error)
+    return true // If we can't parse the token, consider it expired
   }
 }
+
