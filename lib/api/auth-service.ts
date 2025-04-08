@@ -229,4 +229,3 @@ const clearAuthCookies = () => {
   Cookies.remove("access_token", { path: "/" })
   Cookies.remove("refresh_token", { path: "/" })
 }
-

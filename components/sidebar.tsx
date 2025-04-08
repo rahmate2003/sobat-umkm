@@ -19,23 +19,23 @@ export function Sidebar() {
 
   useEffect(() => {
     const checkIfMobile = () => {
-      const newIsMobile = window.innerWidth < 768;
-      setIsMobile(newIsMobile);
+      const newIsMobile = window.innerWidth < 768
+      setIsMobile(newIsMobile)
       // Hanya panggil toggleSidebar jika belum collapsed dan sedang dalam mode mobile
       if (newIsMobile && !isCollapsed) {
-        toggleSidebar();
+        toggleSidebar()
       }
-    };
+    }
 
     // Panggil sekali saat mount
-    checkIfMobile();
+    checkIfMobile()
 
     // Tambahkan event listener
-    window.addEventListener("resize", checkIfMobile);
+    window.addEventListener("resize", checkIfMobile)
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfMobile);
-  }, [isCollapsed]); // Hanya bergantung pada isCollapsed, bukan toggleSidebar
+    return () => window.removeEventListener("resize", checkIfMobile)
+  }, [isCollapsed]) // Hanya bergantung pada isCollapsed, bukan toggleSidebar
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },

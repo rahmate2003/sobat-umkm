@@ -17,11 +17,18 @@ export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
       const accessToken = Cookies.get("access_token")
       const refreshTokenValue = Cookies.get("refresh_token")
 
+      console.log("AuthChecker - Checking tokens:", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshTokenValue,
+        currentPath: pathname,
+      })
+
       // Skip for guest paths
       if (
         pathname.startsWith("/login") ||
         pathname.startsWith("/register") ||
-        pathname.startsWith("/forgot-password")
+        pathname.startsWith("/forgot-password") ||
+        pathname.startsWith("/auth/google") // Add this to prevent redirect during OAuth flow
       ) {
         setIsLoading(false)
         return
@@ -29,6 +36,7 @@ export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
 
       // No tokens at all - redirect to login
       if (!refreshTokenValue) {
+        console.log("AuthChecker - No refresh token, redirecting to login")
         router.replace("/login")
         return
       }
@@ -36,11 +44,11 @@ export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
       // If we have a refresh token but no access token or it's expired, try to refresh
       if (!accessToken || isTokenExpired(accessToken)) {
         try {
-          // console.log("Access token missing or expired, attempting refresh")
+          console.log("AuthChecker - Access token missing or expired, attempting refresh")
           await refreshToken()
           setIsLoading(false)
         } catch (error: any) {
-          console.error("Refresh failed:", error)
+          console.error("AuthChecker - Refresh failed:", error)
 
           // Handle specific error cases
           if (error.message === "REFRESH_TOKEN_EXPIRED") {
@@ -53,6 +61,7 @@ export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
           return
         }
       } else {
+        console.log("AuthChecker - Valid tokens found")
         setIsLoading(false)
       }
     }
@@ -88,4 +97,3 @@ function isTokenExpired(token: string): boolean {
     return true // If we can't parse the token, consider it expired
   }
 }
-

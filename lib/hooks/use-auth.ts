@@ -62,18 +62,25 @@ export function useAuth() {
       const accessToken = Cookies.get("access_token")
       const refreshToken = Cookies.get("refresh_token")
 
+      console.log("Checking auth tokens:", {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+      })
+
       if (!accessToken || !refreshToken) {
+        console.log("No tokens found, logging out")
         logoutStore()
         if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
           router.replace("/login")
         }
       } else {
+        console.log("Tokens found, setting authenticated state")
         setAuthenticated(true)
       }
     }
 
     checkAuth()
-  }, [logoutStore, router])
+  }, [logoutStore, router, setAuthenticated])
   const loginMutation = useMutation(loginApi, {
     onMutate: () => {
       setLoading(true)
@@ -128,4 +135,3 @@ export function useAuth() {
     refetchUser,
   }
 }
-

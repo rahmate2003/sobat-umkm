@@ -29,4 +29,3 @@ export function ApiProvider({ children }: ApiProviderProps) {
     </QueryClientProvider>
   )
 }
-

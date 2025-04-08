@@ -8,15 +8,7 @@ interface UserAvatarProps {
 
 export function UserAvatar({ user, size = 40 }: UserAvatarProps) {
   if (user.imageUrl) {
-    return (
-      <Image
-        src={"/placeholder.svg"}
-        alt={user.name}
-        width={size}
-        height={size}
-        className="rounded-full"
-      />
-    )
+    return <Image src={"/placeholder.svg"} alt={user.name} width={size} height={size} className="rounded-full" />
   }
 
   // If no image, show first letter of name
@@ -29,4 +21,3 @@ export function UserAvatar({ user, size = 40 }: UserAvatarProps) {
     </div>
   )
 }
-

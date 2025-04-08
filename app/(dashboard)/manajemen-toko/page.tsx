@@ -64,7 +64,7 @@ const storesData = [
     owner: "@OwnerAuliaa",
     location: "Jln. Projakal Rt 455 No.118...",
     status: "Aktif",
-  }
+  },
 ]
 
 export default function ManajemenTokoPage() {
@@ -206,4 +206,3 @@ export default function ManajemenTokoPage() {
     </DashboardLayout>
   )
 }
-

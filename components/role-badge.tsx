@@ -31,4 +31,3 @@ export function RoleBadge({ role, className }: RoleBadgeProps) {
     <span className={cn("px-2 py-1 rounded-full text-xs font-medium", colorClass, className)}>{formatRole(role)}</span>
   )
 }
-

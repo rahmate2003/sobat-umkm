@@ -40,6 +40,9 @@ const activityData = [
   { toko: "Toko A", activity: "Menambahkan Produk", date: "30/01/2025 13:35" },
   { toko: "Toko B", activity: "Mengubah Deskripsi Profile", date: "30/01/2025 11:08" },
   { toko: "Toko C", activity: "Menambahkan Produk", date: "29/01/2025 08:40" },
+  { toko: "Toko A", activity: "Menambahkan Produk", date: "30/01/2025 13:35" },
+  { toko: "Toko B", activity: "Mengubah Deskripsi Profile", date: "30/01/2025 11:08" },
+  { toko: "Toko C", activity: "Menambahkan Produk", date: "29/01/2025 08:40" },
 ]
 
 export default function DashboardPage() {
@@ -199,4 +202,3 @@ export default function DashboardPage() {
     </DashboardLayout>
   )
 }
-

@@ -78,4 +78,3 @@ const HeaderComponent = ({ title }: HeaderProps) => {
 export function Header(props: HeaderProps) {
   return <HeaderComponent {...props} />
 }
-
