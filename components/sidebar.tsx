@@ -40,7 +40,7 @@ export function Sidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Store, label: "Manajemen Toko", href: "/manajemen-toko" },
-    { icon: Users, label: "Owner", href: "/owner" },
+    { icon: Users, label: "Manajemen Tenant", href: "/manajemen-tenant" },
     { icon: Activity, label: "Aktivitas Pengguna", href: "/aktivitas" },
     { icon: Settings, label: "Pengaturan", href: "/pengaturan" },
   ]

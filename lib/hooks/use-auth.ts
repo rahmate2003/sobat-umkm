@@ -34,7 +34,7 @@ export function useAuth() {
 
       // Clear tokens and reset state
       Cookies.remove("access_token", { path: "/" })
-      Cookies.remove("refresh_token", { path: "/" })
+      // Cookies.remove("refresh_token", { path: "/" })
       setUser(null)
       setAuthenticated(false)
       logoutStore()
@@ -67,7 +67,14 @@ export function useAuth() {
         hasRefreshToken: !!refreshToken,
       })
 
-      if (!accessToken || !refreshToken) {
+      // if (!refreshToken) {
+      //   console.log("No refresh tokens found, logging out")
+      //   logoutStore()
+      //   if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+      //     router.replace("/login")
+      //   }
+      // }
+       if (!accessToken && !refreshToken) {
         console.log("No tokens found, logging out")
         logoutStore()
         if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Menu, RefreshCw } from "lucide-react"
+import { Bell, Menu, RefreshCw, Settings, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/lib/context/sidebar-context"
 import { useUser } from "@/lib/hooks/use-user"
@@ -9,6 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { RoleBadge } from "@/components/role-badge"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useAuth } from "@/lib/hooks/use-auth"
+import Link from "next/link"
 
 interface HeaderProps {
   title: string
@@ -17,6 +26,7 @@ interface HeaderProps {
 const HeaderComponent = ({ title }: HeaderProps) => {
   const { toggleSidebar } = useSidebar()
   const { user, isLoading } = useUser()
+  const { logout } = useAuth()
   const router = useRouter()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -26,6 +36,10 @@ const HeaderComponent = ({ title }: HeaderProps) => {
     setTimeout(() => {
       setIsRefreshing(false)
     }, 1000)
+  }
+
+  const handleLogout = () => {
+    logout()
   }
 
   return (
@@ -60,15 +74,43 @@ const HeaderComponent = ({ title }: HeaderProps) => {
             </div>
           </div>
         ) : user ? (
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-3">
-              <UserAvatar user={user} size={40} />
-              <div className="hidden md:block">
-                <p className="font-medium">{user.name}</p>
-                <RoleBadge role={user.role} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 rounded-lg p-1 transition-colors">
+                <UserAvatar user={user} size={40} />
+                <div className="hidden md:block">
+                  <p className="font-medium">{user.name}</p>
+                  <RoleBadge role={user.role} />
+                </div>
               </div>
-            </div>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="flex items-center justify-start p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  <p className="font-medium">{user.name}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="cursor-pointer flex w-full items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profil Detail</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/profile/settings" className="cursor-pointer flex w-full items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Pengaturan Profil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Keluar</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ) : null}
       </div>
     </div>

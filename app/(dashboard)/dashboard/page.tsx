@@ -54,35 +54,42 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Kasir</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent>
+           <CardContent>
+          <div className="flex items-center justify-between">
             <div className="text-4xl font-bold text-primary">35</div>
-          </CardContent>
+            <Users className="h-6 w-6 text-primary" />
+          </div>
+        </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Admin Toko</CardTitle>
-            <UserCog className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Admin Toko</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
             <div className="text-4xl font-bold text-primary">35</div>
-          </CardContent>
-        </Card>
+            <UserCog className="h-6 w-6 text-primary" />
+          </div>
+        </CardContent>
+        
+      </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Toko</CardTitle>
-            <Store className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold text-primary">35</div>
-          </CardContent>
+         <CardContent>
+          <div className="flex items-center justify-between">
+            <Store className="h-6 w-6 text-primary" />
+             <div className="text-4xl font-bold text-primary">35</div>
+          </div>
+        </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Owner</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Tenant</CardTitle>
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>

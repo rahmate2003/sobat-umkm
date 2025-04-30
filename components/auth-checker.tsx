@@ -42,22 +42,32 @@ export const AuthChecker = ({ children }: { children: React.ReactNode }) => {
       }
 
       // If we have a refresh token but no access token or it's expired, try to refresh
-      if (!accessToken || isTokenExpired(accessToken)) {
+      if (!accessToken) {
         try {
-          console.log("AuthChecker - Access token missing or expired, attempting refresh")
+          console.log("AuthChecker - No access token but refresh token exists, attempting refresh")
           await refreshToken()
+          console.log("AuthChecker - Token refresh successful")
           setIsLoading(false)
         } catch (error: any) {
           console.error("AuthChecker - Refresh failed:", error)
 
           // Handle specific error cases
-          if (error.message === "REFRESH_TOKEN_EXPIRED") {
-            router.replace("/login?reason=session_expired")
-          } else if (error.message === "REFRESH_TOKEN_INVALID") {
+          if (error.message === "REFRESH_TOKEN_EXPIRED" || error.message === "REFRESH_TOKEN_INVALID") {
             router.replace("/login?reason=session_expired")
           } else {
             router.replace("/login?reason=session_expired")
           }
+          return
+        }
+      } else if (isTokenExpired(accessToken)) {
+        try {
+          console.log("AuthChecker - Access token expired, attempting refresh")
+          await refreshToken()
+          console.log("AuthChecker - Token refresh successful")
+          setIsLoading(false)
+        } catch (error: any) {
+          console.error("AuthChecker - Refresh failed:", error)
+          router.replace("/login?reason=session_expired")
           return
         }
       } else {

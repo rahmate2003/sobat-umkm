@@ -54,10 +54,10 @@ export const login = async (
       const { access, refresh } = token
 
       // Add console logs here to see the tokens
-      // console.log("Access Token:", access.token)
-      // console.log("Access Token Expires:", new Date(access.expires).toLocaleString())
-      // console.log("Refresh Token:", refresh.token)
-      // console.log("Refresh Token Expires:", new Date(refresh.expires).toLocaleString())
+      console.log("Access Token:", access.token)
+      console.log("Access Token Expires:", new Date(access.expires).toLocaleString())
+      console.log("Refresh Token:", refresh.token)
+      console.log("Refresh Token Expires:", new Date(refresh.expires).toLocaleString())
 
       // Set explicit expiration times based on current time
       const now = new Date()
@@ -66,8 +66,8 @@ export const login = async (
       // Refresh token expires in 30 days from now
       const refreshExpires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-      // console.log("Setting access token to expire at:", accessExpires.toLocaleString())
-      // console.log("Setting refresh token to expire at:", refreshExpires.toLocaleString())
+      console.log("Setting access token to expire at:", accessExpires.toLocaleString())
+      console.log("Setting refresh token to expire at:", refreshExpires.toLocaleString())
 
       // Set access token with 30 minute expiration
       Cookies.set("access_token", access.token, {
@@ -124,7 +124,7 @@ export const refreshToken = async (): Promise<string> => {
     throw new Error("NO_REFRESH_TOKEN")
   }
 
-  // console.log("Attempting to refresh token with refresh token:", refreshTokenValue)
+  console.log("Attempting to refresh token with refresh token")
 
   try {
     const response = await axiosInstance.post<ApiResponse<RefreshTokenResponseData>>(
@@ -132,7 +132,7 @@ export const refreshToken = async (): Promise<string> => {
       { refreshToken: refreshTokenValue },
       {
         headers: {
-          "X-No-Retry": "true",
+          "X-No-Retry": "true", 
         },
       },
     )
@@ -144,11 +144,14 @@ export const refreshToken = async (): Promise<string> => {
       const accessExpires = new Date(now.getTime() + 30 * 60 * 1000)
       // Refresh token expires in 30 days - this ensures it persists even if browser is closed
       const refreshExpires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
       // Verify both tokens are not expired
       if (new Date(access.expires) < now || new Date(refresh.expires) < now) {
         clearAuthCookies()
         throw new Error("NEW_TOKENS_EXPIRED")
       }
+
+      console.log("Token refresh successful, setting new cookies")
 
       const cookieOptions = {
         path: "/",
@@ -159,13 +162,13 @@ export const refreshToken = async (): Promise<string> => {
       // Set new access token
       Cookies.set("access_token", access.token, {
         ...cookieOptions,
-        expires: new Date(accessExpires),
+        expires: accessExpires,
       })
 
       // Set new refresh token
       Cookies.set("refresh_token", refresh.token, {
         ...cookieOptions,
-        expires: new Date(refreshExpires),
+        expires: refreshExpires,
       })
 
       return access.token
@@ -227,5 +230,5 @@ export const getCurrentUser = async (): Promise<User> => {
 
 const clearAuthCookies = () => {
   Cookies.remove("access_token", { path: "/" })
-  Cookies.remove("refresh_token", { path: "/" })
+  // Cookies.remove("refresh_token", { path: "/" })
 }

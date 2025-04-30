@@ -1,16 +1,10 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   Select,
   SelectContent,
@@ -18,77 +12,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ChevronRight, Search, Plus, ChevronLeft, ChevronRightIcon, Store, Filter } from "lucide-react"
+import {
+  ChevronRight,
+  Search,
+  Plus,
+  ChevronLeft,
+  ChevronRightIcon,
+  Store,
+  Filter,
+} from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
-import { getAllStores, type Store as StoreType } from "@/lib/api/store-service"
+import { getAllTenants, type Tenant } from "@/lib/api/tenant-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/lib/hooks/use-auth"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface SearchParams {
-  limit?: number;
-  page?: number;
-  sortBy?: string;
-  sortType?: "asc" | "desc";
-  name?: string;
-  storeCode?: string;
-  status?: string;
+  limit?: number
+  page?: number
+  sortBy?: string
+  sortType?: "asc" | "desc"
+  name?: string
+  tenantCode?: string
+  status?: string
 }
 
-export default function ManajemenTokoPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default function ManajemenTenantPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  
-  // Inisialisasi state dari URL parameters
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
-  const [searchType, setSearchType] = useState<"name" | "storeCode">(
-    (searchParams.get('searchType') as "name" | "storeCode") || 'name'
-  )
-  const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get('page') || '1')
-  )
-  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">(
-    (searchParams.get('status') as "ALL" | "ACTIVE" | "INACTIVE") || 'ALL'
-  )
-  
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchType, setSearchType] = useState<"name" | "tenantCode">("name")
+  const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
-  const [stores, setStores] = useState<StoreType[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [totalData, setTotalData] = useState(0)
-  const itemsPerPage = 6
-
-  // Fungsi untuk update URL parameters
-  const updateURLParams = (params: {
-    search?: string;
-    searchType?: "name" | "storeCode";
-    page?: number;
-    status?: "ALL" | "ACTIVE" | "INACTIVE";
-  }) => {
-    const newParams = new URLSearchParams(searchParams.toString())
-    
-    if (params.search !== undefined) {
-      params.search ? newParams.set('search', params.search) : newParams.delete('search')
-    }
-    
-    if (params.searchType !== undefined) {
-      newParams.set('searchType', params.searchType)
-    }
-    
-    if (params.page !== undefined) {
-      params.page > 1 ? newParams.set('page', params.page.toString()) : newParams.delete('page')
-    }
-    
-    if (params.status !== undefined) {
-      params.status !== 'ALL' ? newParams.set('status', params.status) : newParams.delete('status')
-    }
-    
-    router.replace(`?${newParams.toString()}`, { scroll: false })
-  }
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "INACTIVE">("ALL")
+  const itemsPerPage = 3
 
   useEffect(() => {
-    const fetchStores = async () => {
+    const fetchTenants = async () => {
       try {
         setIsLoading(true)
         const page = isNaN(currentPage) ? 1 : currentPage
@@ -103,26 +72,22 @@ export default function ManajemenTokoPage() {
         if (searchTerm) {
           searchParams[searchType] = searchTerm
         }
-
         if (statusFilter !== "ALL") {
           searchParams.status = statusFilter
         }
 
-        const response = await getAllStores(searchParams)
-        
-        setStores(response.stores)
+        const response = await getAllTenants(searchParams)
+
+        setTenants(response.tenants)
         setTotalPages(response.totalPages || 1)
         setTotalData(response.totalData || 0)
-        
         if (currentPage > response.totalPages) {
-          const newPage = response.totalPages || 1
-          setCurrentPage(newPage)
-          updateURLParams({ page: newPage })
+          setCurrentPage(response.totalPages || 1)
         }
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Gagal memuat data toko",
+          description: error.message || "Gagal memuat data tenant",
           variant: "destructive",
         })
       } finally {
@@ -130,31 +95,12 @@ export default function ManajemenTokoPage() {
       }
     }
 
-    fetchStores()
-  }, [searchTerm, searchType, currentPage, statusFilter])
+    fetchTenants()
+  }, [searchTerm, searchType, currentPage, statusFilter, toast])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     setCurrentPage(1)
-    updateURLParams({
-      search: searchTerm,
-      searchType,
-      page: 1
-    })
-  }
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-    updateURLParams({ page })
-  }
-
-  const handleStatusFilterChange = (status: "ALL" | "ACTIVE" | "INACTIVE") => {
-    setStatusFilter(status)
-    setCurrentPage(1)
-    updateURLParams({
-      status,
-      page: 1
-    })
   }
 
   const getPaginationButtons = () => {
@@ -185,8 +131,7 @@ export default function ManajemenTokoPage() {
   }
 
   return (
-    <DashboardLayout title="Manajemen Toko">
-      {/* Breadcrumb */}
+    <DashboardLayout title="Manajemen Tenant">
       <div className="mb-4">
         <nav className="flex" aria-label="Breadcrumb">
           <ol className="inline-flex items-center space-x-1 md:space-x-0">
@@ -198,16 +143,14 @@ export default function ManajemenTokoPage() {
             <li>
               <div className="flex items-center">
                 <span className="mx-2 text-gray-400">&gt;</span>
-                <span className="text-sm font-medium text-gray-700">Manajemen Toko</span>
+                <span className="text-sm font-medium text-gray-700">Manajemen Tenant</span>
               </div>
             </li>
           </ol>
         </nav>
       </div>
 
-      {/* Main Content */}
       <div className="bg-white rounded-lg shadow">
-        {/* Search and Filter Section */}
         <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <form onSubmit={handleSearch} className="flex w-full sm:w-auto gap-2">
             <div className="relative flex-1">
@@ -219,24 +162,18 @@ export default function ManajemenTokoPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select 
-              value={searchType} 
-              onValueChange={(value: "name" | "storeCode") => {
-                setSearchType(value)
-                updateURLParams({ searchType: value })
-              }}
-            >
+            {/* <Select value={searchType} onValueChange={(value: "name" | "tenantCode") => setSearchType(value)}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Pilih" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">Nama Toko</SelectItem>
-                <SelectItem value="storeCode">Kode Toko</SelectItem>
+                <SelectItem value="name">Nama Tenant</SelectItem>
+                <SelectItem value="tenantCode">Kode Tenant</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </form>
 
-          {(user?.role === "SUPERADMIN" || user?.role === "OWNER") && (
+          {user?.role === "SUPERADMIN" && (
             <Button className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Tambahkan
@@ -244,15 +181,14 @@ export default function ManajemenTokoPage() {
           )}
         </div>
 
-        {/* Table Section */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-t border-b">
-                <th className="text-left py-3 px-4 font-medium">Kode Toko</th>
-                <th className="text-left py-3 px-4 font-medium">Nama Toko</th>
                 <th className="text-left py-3 px-4 font-medium">Nama Tenant</th>
-                <th className="text-left py-3 px-4 font-medium">Lokasi Toko</th>
+                <th className="text-left py-3 px-4 font-medium">Owner</th>
+                <th className="text-left py-3 px-4 font-medium">Email</th>
+                <th className="text-left py-3 px-4 font-medium">Alamat</th>
                 <th className="text-left py-3 px-4 font-medium">
                   <div className="flex items-center">
                     Status
@@ -263,13 +199,13 @@ export default function ManajemenTokoPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleStatusFilterChange("ALL")}>
+                        <DropdownMenuItem onClick={() => setStatusFilter("ALL")}>
                           Semua
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusFilterChange("ACTIVE")}>
+                        <DropdownMenuItem onClick={() => setStatusFilter("ACTIVE")}>
                           Aktif
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleStatusFilterChange("INACTIVE")}>
+                        <DropdownMenuItem onClick={() => setStatusFilter("INACTIVE")}>
                           Tidak Aktif
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -306,37 +242,39 @@ export default function ManajemenTokoPage() {
                     </td>
                   </tr>
                 ))
-              ) : stores.length === 0 ? (
+              ) : tenants.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-gray-500">
-                    Tidak ada data toko yang ditemukan
+                    Tidak ada data tenant yang ditemukan
                   </td>
                 </tr>
               ) : (
-                stores.map((store) => (
-                  <tr key={store.id} className="border-b">
+                tenants.map((tenant) => (
+                  <tr key={tenant.id} className="border-b">
                     <td className="py-3 px-4">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-md bg-gray-100 flex items-center justify-center mr-3">
                           <Store className="h-5 w-5 text-primary" />
                         </div>
-                        {store.storeCode}
+                        {tenant.tenantName}
                       </div>
                     </td>
-                    <td className="py-3 px-4">{store.name}</td>
-                    <td className="py-3 px-4">{store.tenant?.name || "N/A"}</td>
-                    <td className="py-3 px-4">{store.address}</td>
+                    <td className="py-3 px-4">{tenant.owner?.name || "N/A"}</td>
+                    <td className="py-3 px-4">{tenant.owner?.email || "N/A"}</td>
+                    <td className="py-3 px-4">
+                      {tenant.address} {tenant.cityName ? `, ${tenant.cityName}` : ""}
+                    </td>
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          store.status === "ACTIVE" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"
+                          tenant.status === "ACTIVE" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {store.status === "ACTIVE" ? "Aktif" : "Tidak Aktif"}
+                        {tenant.status === "ACTIVE" ? "Aktif" : "Tidak Aktif"}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <Link href={`/manajemen-toko/${store.id}`}>
+                      <Link href={`/manajemen-tenant/${tenant.id}`}>
                         <Button variant="ghost" size="icon" className="text-primary">
                           <ChevronRight className="h-5 w-5" />
                         </Button>
@@ -349,17 +287,16 @@ export default function ManajemenTokoPage() {
           </table>
         </div>
 
-        {/* Pagination Section */}
         <div className="p-4 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalData)} dari {totalData} toko
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalData)} dari {totalData} tenant
           </div>
 
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1 || isLoading}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -372,7 +309,7 @@ export default function ManajemenTokoPage() {
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 className={`w-8 h-8 p-0 ${currentPage === page ? "bg-primary" : ""} ${page === '...' ? "pointer-events-none" : ""}`}
-                onClick={() => typeof page === 'number' && handlePageChange(page)}
+                onClick={() => typeof page === 'number' && setCurrentPage(page)}
                 disabled={isLoading || page === '...'}
               >
                 {page}
@@ -382,7 +319,7 @@ export default function ManajemenTokoPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages || isLoading}
             >
               Selanjutnya

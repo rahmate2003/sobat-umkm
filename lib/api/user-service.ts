@@ -9,6 +9,8 @@ interface ApiUser {
   name?: string
   phoneNumber?: string
   imageUrl?: string | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Interface untuk data user yang digunakan di aplikasi
@@ -19,6 +21,8 @@ export interface User {
   phoneNumber: string
   imageUrl: string | null
   role: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 // Interface untuk response API
@@ -50,6 +54,8 @@ export const getUserProfile = async (): Promise<User> => {
         role: apiUser.role, // Langsung gunakan string
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
+        createdAt: apiUser.createdAt,
+        updatedAt: apiUser.updatedAt,
       }
 
       return user
@@ -71,7 +77,7 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
       // Tidak perlu konversi ke objek { roleName: string }, gunakan string langsung
     }
 
-    const response = await axiosInstance.put<ApiResponse<UserProfileResponseData>>("/user/", apiUserData)
+    const response = await axiosInstance.patch<ApiResponse<UserProfileResponseData>>("/user/", apiUserData)
 
     if (response.data.success) {
       const apiUser = response.data.data.user
@@ -81,9 +87,11 @@ export const updateUserProfile = async (userData: Partial<User>): Promise<User> 
         id: apiUser.id,
         email: apiUser.email,
         name: apiUser.name || apiUser.email.split("@")[0],
-        role: apiUser.role, // Langsung gunakan string
+        role: apiUser.role, 
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
+        createdAt: apiUser.createdAt,
+        updatedAt: apiUser.updatedAt,
       }
 
       return user
@@ -119,6 +127,8 @@ export const uploadProfilePhoto = async (file: File): Promise<User> => {
         role: apiUser.role, // Langsung gunakan string
         phoneNumber: apiUser.phoneNumber || "",
         imageUrl: apiUser.imageUrl || null,
+        createdAt: apiUser.createdAt,
+        updatedAt: apiUser.updatedAt,
       }
 
       return user
